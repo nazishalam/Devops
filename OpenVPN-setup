@@ -1,0 +1,167 @@
+VPN Tunnel For Blade Server
+
+
+using open VPN server
+
+Tap Vs Tun
+
+
+
+Tun - Point to Point Tunnel 
+
+Restricted at the host layer. (and not at the network /subnet)
+
+eth0  -Public/Wan IP
+
+eth1 - private IP
+
+yum -y install openvpn ( on both the peers )
+
+(installed with dependencies)
+
+/etc/openvn/server.conf , /etc/openvpn/vpn.key /etc/openvpn/vpn.log
+
+Create a secret.key /openvpn-gen-eky /etc/openvpn/vpn-key 102.61.199.8 - Public IP of blade server
+This will create vpn.key
+
+scp this key to the blade server to /etc/openvpn/
+
+FOr example if you generated the key on server S1 (172.16.213.102) then vpn_102.key to be copied to /etc/openvpn/vpn_102.key on blade server (0.16)
+
+2. create server.conf in /etc/openvpn/
+
+/etc/openvpn/server.conf  On S1
+
+remote: 103.61.199.8 ###(REMOTE END POINT)
+
+float: 
+
+port: 9800
+
+dev: tun
+
+secret :/etc/openvpn/vpn_102.key
+
+route: 172.16.213.0.16  (180.179.213.9 - On Blade)
+
+user:
+
+group:
+
+log: path and name of log file
+
+remote:103.61.199.8
+
+port:9800
+
+dev: tun
+
+secret: /etc/openvpn/vpn_102.key
+
+ifconfig:10.20.0.1 10.20.0.2
+
+remote:180.179.213.9
+
+port:9800
+
+dev: tun
+
+secret: /etc/openvpn/vpn_102.key
+
+ifconfig:10.20.0.2 10.20.0.1
+
+
+
+/etc/init.d/openvpn start (on both the ends)
+
+iptables I 10(RULENUMBER)  -i  tun0 -src 10.20.0.2 --dst 10.20.0.1  --p tcp -dport 3306 -j ACCEPT
+
+Tunnel setup:
+
+P-t-P tunnel
+
+
+Peer-1:
+- yum -y install openvpn 
+- cd /etc/openvpn
+  - there are 3 files needs to be created/confiured
+    - server configuration file(server2157.conf)
+      - vim server2157.conf
+
+remote 205.147.102.175                 -> public IP(etho) of remote host
+float
+port 10021                             -> unique unused port(preferred to use same port on both tunnel hosts
+proto udp                              -> protocol leave as udp
+dev tun                                -> tunnel type
+ifconfig 10.30.0.8 10.30.0.7           -> <peers tunnel IP> <own IP>
+persist-tun
+persist-local-ip
+persist-remote-ip
+comp-lzo
+ping 15
+secret /etc/openvpn/vpn2157.key        -> path to key file
+route 172.16.215.7 255.255.255.255     -> route <peers private(eth1) IP> <mask>
+user nobody                            -> user restriction (if any)
+group nobody                           -> group restriction (if any)
+log vpn2157.log                        -> log <path to log file>
+verb 4                                 -> log vebosity level
+
+
+      - key file(vpn2157.key)
+        - openvpn --genkey --secret vpn2157.key
+
+#
+# 2048 bit OpenVPN static key
+#
+-----BEGIN OpenVPN Static key V1-----
+0ac16b525a845f7e06e24c43f8876ba1
+cc09876d958520a36fcbe6c27397f67a
+1c490d7970adde022d804c5e64f44677
+522d248e4d5021sd010e571ff53842c3
+593a16c552b3fc42a83faeda865e86c6
+ade2097c9a839a7a3b0b3542593b1b29
+85c5ce0a129138b089879ad31152221e
+4719dead10407be3024e4c451ba015c5
+e5b309f1d21fc0b12b7cac2d5a3c887b
+fd93641685e71377cc615aab1e1cd191
+e5fdc318d7c4d19f5971996361b9d1dd
+3d58c6891fdbf3fa0cae97e20997c871
+be557dc0a014464a46f3c898e151ede6
+3ae2ef8d645f03467d7f3eb516cf6321
+52b3f616463b82ad962eda8b5393091a
+3821e6b526a3f74d70a95ea808ffca24
+-----END OpenVPN Static key V1-----
+
+      - log file(vpn2157.log)
+        - touch vpn2157.log
+
+- service openvpn restart
+- you should be able to see tunnel IP if you type, ifconfig
+
+Peer-2:
+- follow the same steps as done on peer-1. Copy the key what was generated on peer1.
+  - server configuration file(/etc/openvpn/server.conf)
+
+remote 103.61.199.8
+float
+port 10021
+proto udp
+dev tun
+ifconfig 10.30.0.7 10.30.0.8
+persist-tun
+persist-local-ip
+persist-remote-ip
+comp-lzo
+ping 15
+secret /etc/openvpn/vpn2157.key
+route 172.16.0.16 255.255.255.255
+user nobody
+group nobody
+log vpn2157.log
+verb 4
+
+
+
+
+You should be able to ping each others IP. Now you need to whitelist IP/Port if required like below:
+- iptables -I INPUT 10 -i tun0 -s 10.30.0.8 -d 10.30.0.7 -p tcp --dport 3306 -j ACCEPT
