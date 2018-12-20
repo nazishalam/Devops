@@ -1,0 +1,46 @@
+NRPE - Nagios Remote Plugin Executor
+
+
+
+/usr/lib64/nagios/plugins  
+
+check_mem_performance
+
+check_disk
+
+check_cpu
+
+check_load
+
+check_logs
+
+Install on  the server as monitoring Server, as nagios . nrpe is installed on each of the clients and is connected to the client on port 5666.
+
+Client Side:-
+
+nrpe.cfg
+
+/etc/nagios/nrpe.cfg (/etc/rsyslog.conf)
+
+log_facility=local1 (edit rsyslog.conf and add an entry for local1 =/var/log/nrpe.log OR create a file nrpe.conf in /etc/rsyslog.d folder and add the same line - local1.* /var/log/nrpe.log)
+
+Nagios Server hosted on 172.16.214.8
+
+If the Nagios server is down, then monitoring is down.
+
+ndo_utils to save history of monitored data
+
+
+
+/usr/lib64/nagios/plugins/check_cpu_performance.sh
+
+
+
+Edit contacts in /usr/local/nagios/etc/objects
+
+
+
+
+
+MORE NOTES TO BE ADDED (THRUK etc)
+
